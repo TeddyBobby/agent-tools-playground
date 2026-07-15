@@ -13,17 +13,17 @@ export function StatsPanel({ session }: StatsPanelProps) {
   const avgDuration = session.traces.length > 0 ? totalDuration / session.traces.length : 0;
 
   const stats = [
-    { label: 'Model', value: session.model },
-    { label: 'Tool Calls', value: session.traces.length.toString() },
+    { label: '模型', value: session.model },
+    { label: '工具调用', value: session.traces.length.toString() },
     {
-      label: 'Success Rate',
+      label: '成功率',
       value: session.traces.length > 0
         ? `${Math.round((successCount / session.traces.length) * 100)}%`
         : 'N/A',
     },
-    { label: 'Errors', value: errorCount.toString(), highlight: errorCount > 0 },
-    { label: 'Total Time', value: formatMs(totalDuration) },
-    { label: 'Avg / Call', value: formatMs(avgDuration) },
+    { label: '错误', value: errorCount.toString(), highlight: errorCount > 0 },
+    { label: '总耗时', value: formatMs(totalDuration) },
+    { label: '平均/次', value: formatMs(avgDuration) },
   ];
 
   const toolCounts = session.traces.reduce(
@@ -57,7 +57,7 @@ export function StatsPanel({ session }: StatsPanelProps) {
 
       {/* Tool frequency */}
       <div>
-        <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Tool Frequency</h4>
+        <h4 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">工具频率</h4>
         <div className="space-y-1.5">
           {Object.entries(toolCounts)
             .sort(([, a], [, b]) => b - a)
