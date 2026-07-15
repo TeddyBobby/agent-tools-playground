@@ -15,7 +15,7 @@ export function DetailPanel({ trace }: DetailPanelProps) {
       <div className="h-full flex items-center justify-center text-gray-400 text-sm">
         <div className="text-center">
           <div className="text-3xl mb-2">👈</div>
-          <p>Select a tool call<br />to view details</p>
+          <p>选择一个工具调用<br />查看详情</p>
         </div>
       </div>
     );
@@ -39,14 +39,14 @@ export function DetailPanel({ trace }: DetailPanelProps) {
                 : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
             }`}
           >
-            {trace.status}
+            {trace.status === 'success' ? '成功' : trace.status === 'error' ? '失败' : '运行中'}
           </span>
           <span className="text-xs text-gray-400 font-mono">{trace.id}</span>
         </div>
         <h3 className="font-mono font-semibold text-lg">{trace.name}</h3>
         {trace.duration !== undefined && (
           <div className="text-sm text-gray-500 mt-1">
-            Duration: {trace.duration < 1000 ? `${trace.duration}ms` : `${(trace.duration / 1000).toFixed(1)}s`}
+            耗时: {trace.duration < 1000 ? `${trace.duration}ms` : `${(trace.duration / 1000).toFixed(1)}s`}
           </div>
         )}
       </div>
@@ -63,7 +63,7 @@ export function DetailPanel({ trace }: DetailPanelProps) {
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
-            {tab === 'diff' ? 'Diff' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'diff' ? '对比' : tab === 'input' ? '输入' : '输出'}
           </button>
         ))}
       </div>
@@ -80,17 +80,17 @@ export function DetailPanel({ trace }: DetailPanelProps) {
                 {errorStr}
               </div>
             ) : (
-              <p className="text-gray-400 text-sm">No output yet</p>
+              <p className="text-gray-400 text-sm">暂无输出</p>
             )}
           </>
         )}
         {view === 'diff' && (
           <div className="space-y-2 font-mono text-sm">
-            <div className="text-xs text-gray-400 mb-2">Input → Output changes:</div>
+            <div className="text-xs text-gray-400 mb-2">输入 → 输出 变化对比：</div>
             {outputStr && inputStr !== outputStr ? (
               <DiffView oldStr={inputStr} newStr={outputStr} />
             ) : (
-              <p className="text-gray-400 text-sm">No differences</p>
+              <p className="text-gray-400 text-sm">无差异</p>
             )}
           </div>
         )}
