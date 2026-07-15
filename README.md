@@ -4,6 +4,10 @@ A visual debugger and analyzer for AI agent tool calls. See exactly what tools y
 
 ![Agent Tools Playground](public/screenshot.png)
 
+## 📸 Preview
+
+![Agent Tools Playground](public/screenshot.png)
+
 ## ✨ Features
 
 - **Timeline View** — See every tool call in chronological order with duration bars
