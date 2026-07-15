@@ -35,7 +35,7 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
       {traces.length === 0 && (
         <div className="text-center py-8 text-gray-400">
           <div className="text-4xl mb-2">🔍</div>
-          <p className="text-sm">No tool calls yet. Import a trace to get started.</p>
+          <p className="text-sm">暂无工具调用记录，导入 trace 数据开始。</p>
         </div>
       )}
 
