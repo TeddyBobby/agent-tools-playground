@@ -107,7 +107,7 @@ export function generateDemoSession(): AgentSession {
 
   return {
     id: 'demo-session',
-    name: `Debug Session — build fix`,
+    name: '调试会话 — 构建修复',
     model: 'claude-sonnet-4',
     startTime: traces[0].startTime,
     endTime: traces[traces.length - 1].endTime,
