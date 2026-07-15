@@ -20,14 +20,14 @@ export default function Home() {
   };
 
   const handleImport = () => {
-    const input = prompt('Paste JSON trace data (array of tool calls):');
+    const input = prompt('粘贴 JSON trace 数据（工具调用数组）：');
     if (!input) return;
     try {
       const traces: ToolTrace[] = JSON.parse(input);
       if (!Array.isArray(traces)) throw new Error('Expected array');
       setSession({
         id: crypto.randomUUID(),
-        name: 'Imported Session',
+        name: '导入的会话',
         model: 'unknown',
         startTime: traces[0]?.startTime || Date.now(),
         endTime: traces[traces.length - 1]?.endTime,
@@ -35,7 +35,7 @@ export default function Home() {
       });
       setSelectedId(null);
     } catch {
-      alert('Invalid JSON. Expected an array of tool trace objects.');
+      alert('无效的 JSON 格式，需要一个工具 trace 对象数组。');
     }
   };
 
@@ -45,10 +45,10 @@ export default function Home() {
       <header className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold flex items-center gap-2">
-            <span>🔧</span> Agent Tools Playground
+            <span>🔧</span> Agent 工具调试器
           </h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            {session.name} · {session.traces.length} tool calls
+            {session.name} · {session.traces.length} 次工具调用
           </p>
         </div>
         <div className="flex gap-2">
@@ -56,13 +56,13 @@ export default function Home() {
             onClick={handleLoadDemo}
             className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            🎲 Demo
+            🎲 演示
           </button>
           <button
             onClick={handleImport}
             className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            📥 Import
+            📥 导入
           </button>
           <div className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
             <button
@@ -73,7 +73,7 @@ export default function Home() {
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              Timeline
+              时间线
             </button>
             <button
               onClick={() => setActiveTab('stats')}
@@ -83,7 +83,7 @@ export default function Home() {
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
-              Stats
+              统计
             </button>
           </div>
         </div>
