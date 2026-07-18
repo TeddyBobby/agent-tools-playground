@@ -53,12 +53,6 @@ npm run dev
 - **理解 Agent 行为** — 逐步回放工具调用序列
 - **团队协作** — 导出 trace 分享给同事
 
-## 🧠 Agent Skills 收集
-
-持续追踪前端/全栈领域的 AI Agent Skills → [SKILLS.md](./SKILLS.md)
-
-收录：设计反 AI 味（hallmark/taste-skill）、前端开发（anthropic/vercel）、测试（webapp-testing/tdd）、工作流（superpowers/mcp-builder）等 20+ 精选 skills + 2026 趋势分析。
-
 ## 🏗️ 技术栈 Tech Stack
 
 | 层 Layer | 技术 Technology |
