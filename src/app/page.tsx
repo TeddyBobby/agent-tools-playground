@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { generateDemoSession, AgentSession, ToolTrace } from '@/lib/types';
 import { Timeline } from '@/components/timeline';
 import { DetailPanel } from '@/components/detail-panel';
@@ -14,6 +14,7 @@ export default function Home() {
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
+  const importTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedTrace =
     session.traces.find((t) => t.id === selectedId) || null;
@@ -71,6 +72,28 @@ export default function Home() {
       setImportError('无效的 JSON 格式，需要一个工具 trace 对象数组。');
     }
   };
+
+  // Focus textarea when import modal opens
+  useEffect(() => {
+    if (showImport) {
+      const timer = setTimeout(() => importTextareaRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [showImport]);
+
+  // Close import modal on Escape key
+  useEffect(() => {
+    if (!showImport) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowImport(false);
+        setImportText('');
+        setImportError('');
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showImport]);
 
   return (
     <ErrorBoundary>
@@ -149,13 +172,16 @@ export default function Home() {
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
             onClick={handleCloseImport}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="import-modal-title"
           >
             <div
               className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col border border-gray-200 dark:border-gray-800"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">导入工具调用数据</h2>
+                <h2 id="import-modal-title" className="text-lg font-semibold">导入工具调用数据</h2>
                 <button
                   onClick={handleCloseImport}
                   className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -177,6 +203,7 @@ export default function Home() {
               </div>
               <div className="px-6 flex-1 min-h-0">
                 <textarea
+                  ref={importTextareaRef}
                   value={importText}
                   onChange={(e) => {
                     setImportText(e.target.value);

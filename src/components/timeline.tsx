@@ -39,7 +39,7 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
         </div>
       )}
 
-      {traces.map((trace, idx) => {
+      {traces.map((trace) => {
         const widthPct = ((trace.duration || 0) / maxDuration) * 80 + 20; // min 20% width bar
         const timeStr = trace.duration
           ? trace.duration < 1000

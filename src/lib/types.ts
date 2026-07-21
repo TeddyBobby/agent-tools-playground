@@ -102,9 +102,6 @@ export function generateDemoSession(): AgentSession {
     },
   ];
 
-  const totalDuration = traces.reduce((sum, t) => sum + (t.duration || 0), 0);
-  const successCount = traces.filter((t) => t.status === 'success').length;
-
   return {
     id: 'demo-session',
     name: '调试会话 — 构建修复',
