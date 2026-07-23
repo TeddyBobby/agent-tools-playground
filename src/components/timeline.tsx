@@ -46,14 +46,27 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
             ? `${trace.duration}ms`
             : `${(trace.duration / 1000).toFixed(1)}s`
           : '...';
+        const isSelected = selectedId === trace.id;
+
+        const handleKeyDown = (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(trace.id);
+          }
+        };
 
         return (
           <div
             key={trace.id}
+            role="button"
+            tabIndex={0}
+            aria-pressed={isSelected}
+            aria-label={`${trace.name} — ${trace.status === 'success' ? '成功' : trace.status === 'error' ? '失败' : '运行中'} — ${timeStr}`}
             onClick={() => onSelect(trace.id)}
+            onKeyDown={handleKeyDown}
             className={`border-l-4 ${STATUS_BORDERS[trace.status]} ${
-              selectedId === trace.id ? STATUS_BG[trace.status] + ' ring-1 ring-blue-200 dark:ring-blue-800' : ''
-            } rounded-r-lg px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors`}
+              isSelected ? STATUS_BG[trace.status] + ' ring-1 ring-blue-200 dark:ring-blue-800' : ''
+            } rounded-r-lg px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500`}
           >
             <div className="flex items-center gap-2">
               {/* Status dot */}
