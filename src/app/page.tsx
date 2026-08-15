@@ -73,6 +73,28 @@ export default function Home() {
     }
   };
 
+  // Export the current session's traces as a JSON file (round-trips with import)
+  const handleExport = () => {
+    const data = JSON.stringify(session.traces, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const now = new Date();
+    const stamp =
+      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}` +
+      `${String(now.getDate()).padStart(2, '0')}-` +
+      `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}` +
+      `${String(now.getSeconds()).padStart(2, '0')}`;
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `agent-trace-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   // Focus textarea when import modal opens
   useEffect(() => {
     if (showImport) {
@@ -120,6 +142,12 @@ export default function Home() {
               className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               📥 导入
+            </button>
+            <button
+              onClick={handleExport}
+              className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              📤 导出
             </button>
             <div className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
               <button

@@ -13,7 +13,7 @@ AI Agent 工具调用可视化调试面板 —— 时间线、输入输出对比
 - **Diff 对比 Diff View** — 并排对比输入和输出的差异
 - **性能统计 Stats** — 成功率、平均耗时、工具调用频率分布
 - **Demo 模式** — 预置真实调试场景数据，开箱即用
-- **导入导出 Import/Export** — 支持 JSON 格式的 trace 数据导入
+- **导入导出 Import/Export** — 支持 JSON 格式的 trace 数据导入，一键导出当前会话（可再导入）
 - **暗色模式 Dark Mode**
 
 ## 🚀 快速开始 Quick Start
@@ -27,9 +27,9 @@ npm run dev
 
 打开 http://localhost:3000 即可看到 demo 数据。
 
-## 📥 数据导入格式 Import Format
+## 📥📤 数据导入/导出格式 Import/Export Format
 
-接受 JSON 数组格式的 tool trace：
+接受 JSON 数组格式的 tool trace（导入和导出使用同一格式，导出后可直接再次导入）：
 
 ```json
 [
