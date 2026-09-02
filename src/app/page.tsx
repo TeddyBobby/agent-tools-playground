@@ -6,6 +6,7 @@ import { Timeline } from '@/components/timeline';
 import { DetailPanel } from '@/components/detail-panel';
 import { StatsPanel } from '@/components/stats-panel';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function Home() {
   const [session, setSession] = useState<AgentSession>(() => generateDemoSession());
@@ -149,6 +150,7 @@ export default function Home() {
             >
               📤 导出
             </button>
+            <ThemeToggle />
             <div className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
               <button
                 onClick={() => setActiveTab('timeline')}
