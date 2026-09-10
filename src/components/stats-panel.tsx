@@ -34,6 +34,10 @@ export function StatsPanel({ session }: StatsPanelProps) {
     {} as Record<string, number>
   );
 
+  // Precompute the highest frequency once instead of recomputing it inside the
+  // map loop below (which made the bar widths O(n²) for the tool list).
+  const maxToolCount = Math.max(...Object.values(toolCounts));
+
   return (
     <div className="space-y-4">
       {/* Summary stats */}
@@ -62,8 +66,7 @@ export function StatsPanel({ session }: StatsPanelProps) {
           {Object.entries(toolCounts)
             .sort(([, a], [, b]) => b - a)
             .map(([name, count]) => {
-              const maxCount = Math.max(...Object.values(toolCounts));
-              const pct = (count / maxCount) * 100;
+              const pct = (count / maxToolCount) * 100;
               return (
                 <div key={name} className="flex items-center gap-2 text-sm">
                   <span className="w-24 font-mono text-gray-700 dark:text-gray-300 truncate">
