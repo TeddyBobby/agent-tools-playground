@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { generateDemoSession, AgentSession, ToolTrace } from '@/lib/types';
 import { Timeline } from '@/components/timeline';
 import { DetailPanel } from '@/components/detail-panel';
 import { StatsPanel } from '@/components/stats-panel';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { ThemeToggle } from '@/components/theme-toggle';
+
+// Selector for focusable elements used to trap Tab navigation within the
+// import modal. Excludes disabled controls and `tabindex="-1"` (which is
+// focusable programmatically but skipped in the tab order).
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Home() {
   const [session, setSession] = useState<AgentSession>(() => generateDemoSession());
@@ -16,6 +22,9 @@ export default function Home() {
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
   const importTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const importButtonRef = useRef<HTMLButtonElement>(null);
+  const importModalRef = useRef<HTMLDivElement>(null);
+  const prevShowImportRef = useRef(false);
 
   const selectedTrace =
     session.traces.find((t) => t.id === selectedId) || null;
@@ -96,11 +105,21 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  // Focus textarea when import modal opens
+  // Focus management for the import modal:
+  // - On open: focus the textarea once the modal has mounted.
+  // - On close: restore focus to the trigger button after the modal (and its
+  //   `inert` backdrop) has been removed, so keyboard users aren't stranded.
   useEffect(() => {
+    const wasOpen = prevShowImportRef.current;
+    prevShowImportRef.current = showImport;
+
     if (showImport) {
       const timer = setTimeout(() => importTextareaRef.current?.focus(), 50);
       return () => clearTimeout(timer);
+    }
+
+    if (wasOpen) {
+      importButtonRef.current?.focus();
     }
   }, [showImport]);
 
@@ -118,11 +137,39 @@ export default function Home() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [showImport]);
 
+  // Trap focus inside the import modal (WAI-ARIA modal dialog pattern):
+  // Tab / Shift+Tab cycle through the modal's focusable elements instead of
+  // escaping into the inert background.
+  const handleModalKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const modal = importModalRef.current;
+    if (!modal) return;
+
+    const focusable = Array.from(
+      modal.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    ).filter((el) => el.offsetParent !== null);
+
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+
+    if (e.shiftKey) {
+      if (active === first || !modal.contains(active)) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (active === last || !modal.contains(active)) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
     <ErrorBoundary>
       <div className="h-screen flex flex-col bg-white dark:bg-gray-950">
         {/* Header */}
-        <header className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <header inert={showImport} className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold flex items-center gap-2">
               <span>🔧</span> Agent 工具调试器
@@ -139,6 +186,7 @@ export default function Home() {
               🎲 演示
             </button>
             <button
+              ref={importButtonRef}
               onClick={handleOpenImport}
               className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
@@ -177,7 +225,7 @@ export default function Home() {
         </header>
 
         {/* Main content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div inert={showImport} className="flex-1 flex overflow-hidden">
           {/* Left panel — timeline/stats */}
           <div className="flex-1 overflow-y-auto border-r border-gray-200 dark:border-gray-800 p-4">
             {activeTab === 'timeline' ? (
@@ -200,6 +248,8 @@ export default function Home() {
         {/* Import modal */}
         {showImport && (
           <div
+            ref={importModalRef}
+            onKeyDown={handleModalKeyDown}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
             onClick={handleCloseImport}
             role="dialog"
