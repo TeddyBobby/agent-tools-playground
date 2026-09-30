@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { generateDemoSession, AgentSession, ToolTrace } from '@/lib/types';
+import { generateDemoSession, AgentSession } from '@/lib/types';
+import { parseToolTraces } from '@/lib/import';
 import { Timeline } from '@/components/timeline';
 import { DetailPanel } from '@/components/detail-panel';
 import { StatsPanel } from '@/components/stats-panel';
@@ -62,25 +63,26 @@ export default function Home() {
       setImportError('请输入 JSON 数据。');
       return;
     }
-    try {
-      const traces: ToolTrace[] = JSON.parse(trimmed);
-      if (!Array.isArray(traces)) throw new Error('Expected array');
-      if (traces.length === 0) throw new Error('Empty array');
-      setSession({
-        id: crypto.randomUUID(),
-        name: '导入的会话',
-        model: 'unknown',
-        startTime: traces[0]?.startTime || Date.now(),
-        endTime: traces[traces.length - 1]?.endTime,
-        traces,
-      });
-      setSelectedId(null);
-      setShowImport(false);
-      setImportText('');
-      setImportError('');
-    } catch {
-      setImportError('无效的 JSON 格式，需要一个工具 trace 对象数组。');
+    // `parseToolTraces` validates and normalizes the paste, so malformed data
+    // fails with a specific error instead of crashing the timeline later.
+    const result = parseToolTraces(trimmed);
+    if (!result.ok) {
+      setImportError(result.error);
+      return;
     }
+    const traces = result.traces;
+    setSession({
+      id: crypto.randomUUID(),
+      name: '导入的会话',
+      model: 'unknown',
+      startTime: traces[0]?.startTime || Date.now(),
+      endTime: traces[traces.length - 1]?.endTime,
+      traces,
+    });
+    setSelectedId(null);
+    setShowImport(false);
+    setImportText('');
+    setImportError('');
   };
 
   // Export the current session's traces as a JSON file (round-trips with import)
