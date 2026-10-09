@@ -65,6 +65,17 @@ export function generateDemoSession(): AgentSession {
       duration: 200,
     },
     {
+      id: 'tc-3b',
+      name: 'read_file',
+      status: 'success',
+      input: { path: 'src/components/chat-input.tsx' },
+      output: { content: 'export function ChatInput() { ... }' },
+      startTime: now - 2900,
+      endTime: now - 2800,
+      duration: 100,
+      parentId: 'tc-3', // nested: opened the file that search_files just located
+    },
+    {
       id: 'tc-4',
       name: 'terminal',
       status: 'error',

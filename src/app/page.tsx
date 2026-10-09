@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { generateDemoSession, AgentSession } from '@/lib/types';
 import { parseToolTraces } from '@/lib/import';
 import { Timeline } from '@/components/timeline';
@@ -29,6 +29,15 @@ export default function Home() {
 
   const selectedTrace =
     session.traces.find((t) => t.id === selectedId) || null;
+
+  // id → name lookup so the detail panel can resolve a nested trace's parent.
+  const nameById = useMemo(
+    () => new Map(session.traces.map((t) => [t.id, t.name])),
+    [session.traces],
+  );
+  const selectedParentName = selectedTrace?.parentId
+    ? nameById.get(selectedTrace.parentId)
+    : undefined;
 
   const handleLoadDemo = () => {
     setSession(generateDemoSession());
@@ -243,7 +252,7 @@ export default function Home() {
 
           {/* Right panel — detail */}
           <div className="w-96 overflow-hidden">
-            <DetailPanel trace={selectedTrace} />
+            <DetailPanel trace={selectedTrace} parentName={selectedParentName} />
           </div>
         </div>
 

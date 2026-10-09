@@ -5,9 +5,10 @@ import { useState } from 'react';
 
 interface DetailPanelProps {
   trace: ToolTrace | null;
+  parentName?: string;
 }
 
-export function DetailPanel({ trace }: DetailPanelProps) {
+export function DetailPanel({ trace, parentName }: DetailPanelProps) {
   const [view, setView] = useState<'input' | 'output' | 'diff'>('input');
 
   if (!trace) {
@@ -44,6 +45,11 @@ export function DetailPanel({ trace }: DetailPanelProps) {
           <span className="text-xs text-gray-400 font-mono">{trace.id}</span>
         </div>
         <h3 className="font-mono font-semibold text-lg">{trace.name}</h3>
+        {trace.parentId && (
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            父调用: <span className="font-mono">{parentName ?? trace.parentId}</span>
+          </div>
+        )}
         {trace.duration !== undefined && (
           <div className="text-sm text-gray-500 mt-1">
             耗时: {trace.duration < 1000 ? `${trace.duration}ms` : `${(trace.duration / 1000).toFixed(1)}s`}

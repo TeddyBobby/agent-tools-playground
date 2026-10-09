@@ -9,7 +9,8 @@ AI Agent 工具调用可视化调试面板 —— 时间线、输入输出对比
 ## ✨ 功能 Features
 
 - **时间线视图 Timeline** — 按时间顺序展示每次工具调用，带耗时进度条
-- **详情面板 Detail Panel** — 点击任意调用，查看完整 JSON 输入/输出
+- **嵌套调用 Nested Calls** — 支持 `parentId` 层级，子调用（子 Agent、内部 `read_file` 等）缩进展示在父调用下
+- **详情面板 Detail Panel** — 点击任意调用，查看完整 JSON 输入/输出（嵌套调用会标注父调用）
 - **Diff 对比 Diff View** — 并排对比输入和输出的差异
 - **性能统计 Stats** — 成功率、平均耗时、工具调用频率分布
 - **Demo 模式** — 预置真实调试场景数据，开箱即用
@@ -41,7 +42,8 @@ npm run dev
     "output": { "content": "export default..." },
     "startTime": 1700000000000,
     "endTime": 1700000000200,
-    "duration": 200
+    "duration": 200,
+    "parentId": "tc-0"
   }
 ]
 ```

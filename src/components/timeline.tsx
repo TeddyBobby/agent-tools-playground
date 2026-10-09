@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ToolTrace } from '@/lib/types';
+import { flattenTraces } from '@/lib/trace-tree';
 
 interface TimelineProps {
   traces: ToolTrace[];
@@ -48,7 +49,11 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
     });
   }, [traces, statusFilter, nameSearch]);
 
-  const maxDuration = Math.max(...filteredTraces.map((t) => t.duration || 1), 1);
+  // Resolve `parentId` links into a depth-ordered sequence so nested tool calls
+  // render indented under their parent instead of as a flat list.
+  const flatTraces = useMemo(() => flattenTraces(filteredTraces), [filteredTraces]);
+
+  const maxDuration = Math.max(...flatTraces.map((f) => f.trace.duration || 1), 1);
   const hasActiveFilter = statusFilter !== 'all' || nameSearch.length > 0;
 
   return (
@@ -102,7 +107,7 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
       )}
 
       <div className="space-y-1">
-      {filteredTraces.map((trace) => {
+      {flatTraces.map(({ trace, depth }) => {
         const widthPct = ((trace.duration || 0) / maxDuration) * 80 + 20; // min 20% width bar
         const timeStr = trace.duration
           ? trace.duration < 1000
@@ -124,9 +129,10 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
             role="button"
             tabIndex={0}
             aria-pressed={isSelected}
-            aria-label={`${trace.name} — ${trace.status === 'success' ? '成功' : trace.status === 'error' ? '失败' : '运行中'} — ${timeStr}`}
+            aria-label={`${trace.name} — ${trace.status === 'success' ? '成功' : trace.status === 'error' ? '失败' : '运行中'} — ${timeStr}${depth > 0 ? '（嵌套调用）' : ''}`}
             onClick={() => onSelect(trace.id)}
             onKeyDown={handleKeyDown}
+            style={{ marginLeft: depth * 18 }}
             className={`border-l-4 ${STATUS_BORDERS[trace.status]} ${
               isSelected ? STATUS_BG[trace.status] + ' ring-1 ring-blue-200 dark:ring-blue-800' : ''
             } rounded-r-lg px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500`}
@@ -134,6 +140,16 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
             <div className="flex items-center gap-2">
               {/* Status dot */}
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_COLORS[trace.status]}`} />
+
+              {/* Nested marker */}
+              {depth > 0 && (
+                <span
+                  className="text-gray-300 dark:text-gray-600 font-mono text-sm flex-shrink-0"
+                  aria-hidden="true"
+                >
+                  ↳
+                </span>
+              )}
 
               {/* Tool name */}
               <span className="font-mono text-sm font-medium text-gray-800 dark:text-gray-200 flex-shrink-0">
