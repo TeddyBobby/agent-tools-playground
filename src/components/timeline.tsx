@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { ToolTrace } from '@/lib/types';
 import { flattenTraces } from '@/lib/trace-tree';
 
@@ -41,13 +41,20 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [nameSearch, setNameSearch] = useState('');
 
+  // Defer the search filter so typing stays responsive on large traces: the
+  // input updates on every keystroke, while the (potentially expensive) filter
+  // and tree-flatten run against a slightly stale value. React prioritizes the
+  // urgent input update and lets the list catch up — the standard pattern for
+  // "expensive computation on every keystroke".
+  const deferredNameSearch = useDeferredValue(nameSearch);
+
   const filteredTraces = useMemo(() => {
     return traces.filter((t) => {
       if (statusFilter !== 'all' && t.status !== statusFilter) return false;
-      if (nameSearch && !t.name.toLowerCase().includes(nameSearch.toLowerCase())) return false;
+      if (deferredNameSearch && !t.name.toLowerCase().includes(deferredNameSearch.toLowerCase())) return false;
       return true;
     });
-  }, [traces, statusFilter, nameSearch]);
+  }, [traces, statusFilter, deferredNameSearch]);
 
   // Resolve `parentId` links into a depth-ordered sequence so nested tool calls
   // render indented under their parent instead of as a flat list.
@@ -182,10 +189,15 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
   );
 }
 
+// Cap inline previews so a single tool call with a huge payload (e.g. a
+// `write_file` body) doesn't dump megabytes of JSON into the DOM on render.
+const PREVIEW_MAX = 120;
+
 function summarize(input: unknown): string {
+  const truncate = (s: string) => (s.length > PREVIEW_MAX ? `${s.slice(0, PREVIEW_MAX)}…` : s);
   if (typeof input === 'object' && input !== null) {
     const entries = Object.entries(input as Record<string, unknown>).slice(0, 2);
-    return entries.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ');
+    return entries.map(([k, v]) => `${k}: ${truncate(JSON.stringify(v))}`).join(', ');
   }
-  return JSON.stringify(input);
+  return truncate(JSON.stringify(input));
 }
