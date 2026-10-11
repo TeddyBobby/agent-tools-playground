@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { generateDemoSession, AgentSession } from '@/lib/types';
 import { parseToolTraces } from '@/lib/import';
+import { genId } from '@/lib/id';
 import { Timeline } from '@/components/timeline';
 import { DetailPanel } from '@/components/detail-panel';
 import { StatsPanel } from '@/components/stats-panel';
@@ -81,7 +82,7 @@ export default function Home() {
     }
     const traces = result.traces;
     setSession({
-      id: crypto.randomUUID(),
+      id: genId(),
       name: '导入的会话',
       model: 'unknown',
       startTime: traces[0]?.startTime || Date.now(),
