@@ -33,6 +33,21 @@ function asFiniteNumber(value: unknown): number | null {
   return null;
 }
 
+// Return `base` if it isn't taken yet, otherwise append a numeric suffix
+// (`base-2`, `base-3`, …) until a free id is found. Guarantees the returned
+// traces carry unique ids so the tree-flatten step and React keys never
+// collapse two distinct records into one.
+function dedupeId(base: string, seen: Set<string>): string {
+  if (!seen.has(base)) return base;
+  let n = 2;
+  let candidate = `${base}-${n}`;
+  while (seen.has(candidate)) {
+    n++;
+    candidate = `${base}-${n}`;
+  }
+  return candidate;
+}
+
 export function parseToolTraces(raw: string): ImportResult {
   let parsed: unknown;
   try {
@@ -49,6 +64,7 @@ export function parseToolTraces(raw: string): ImportResult {
   }
 
   const traces: ToolTrace[] = [];
+  const seenIds = new Set<string>();
 
   for (let i = 0; i < parsed.length; i++) {
     const entry = parsed[i];
@@ -65,9 +81,15 @@ export function parseToolTraces(raw: string): ImportResult {
     }
 
     // A missing id is repaired rather than rejected — it's not a data error,
-    // just an omission we can safely fill in (index-based ids are unique within
-    // this import and stable for React keys).
-    const id = asNonEmptyString(rec.id) ?? `trace-${i + 1}`;
+    // just an omission we can safely fill in. Generated ids are index-based
+    // (`trace-N`), but every id (explicit or generated) is deduplicated
+    // against what we've seen so far. Without this, a hand-written id that
+    // collides with an auto-generated one would make two records share a key;
+    // the tree-flatten step indexes records by id, so one of them was silently
+    // dropped from the timeline.
+    const rawId = asNonEmptyString(rec.id);
+    const id = rawId === null ? dedupeId(`trace-${i + 1}`, seenIds) : dedupeId(rawId, seenIds);
+    seenIds.add(id);
 
     let status: ToolTrace['status'] = 'success';
     if (rec.status !== undefined && rec.status !== null) {

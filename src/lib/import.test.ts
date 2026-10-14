@@ -69,4 +69,51 @@ describe('parseToolTraces', () => {
     const result = parseToolTraces(JSON.stringify([{ name: 123 }]));
     expect(result.ok).toBe(false);
   });
+
+  it('deduplicates a generated id that collides with a later explicit id', () => {
+    // Record 1 has no id → auto-generated `trace-1`; record 2 explicitly uses
+    // `trace-1`. Both must survive with distinct ids instead of the second one
+    // silently dropping the first in the tree-flatten step.
+    const result = parseToolTraces(
+      JSON.stringify([
+        { name: 'first' },
+        { id: 'trace-1', name: 'second' },
+      ]),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.traces.map((t) => t.id)).toEqual(['trace-1', 'trace-1-2']);
+      expect(result.traces.map((t) => t.name)).toEqual(['first', 'second']);
+    }
+  });
+
+  it('keeps both records when two entries share the same explicit id', () => {
+    const result = parseToolTraces(
+      JSON.stringify([
+        { id: 'dup', name: 'a' },
+        { id: 'dup', name: 'b' },
+      ]),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.traces.map((t) => t.id)).toEqual(['dup', 'dup-2']);
+      expect(result.traces.map((t) => t.name)).toEqual(['a', 'b']);
+    }
+  });
+
+  it('deduplicates a generated id that collides with an earlier explicit id', () => {
+    const result = parseToolTraces(
+      JSON.stringify([
+        { id: 'trace-2', name: 'first' },
+        { name: 'second' },
+      ]),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.traces.map((t) => t.id)).toEqual(['trace-2', 'trace-2-2']);
+    }
+  });
 });
