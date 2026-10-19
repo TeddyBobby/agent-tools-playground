@@ -2,6 +2,7 @@
 
 import { ToolTrace } from '@/lib/types';
 import { computeDiff } from '@/lib/diff';
+import { CopyButton } from './copy-button';
 import { useState } from 'react';
 
 interface DetailPanelProps {
@@ -77,15 +78,13 @@ export function DetailPanel({ trace, parentName }: DetailPanelProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
-        {view === 'input' && <CodeBlock code={inputStr} />}
+        {view === 'input' && <CodeBlock code={inputStr} label="输入" />}
         {view === 'output' && (
           <>
             {outputStr ? (
-              <CodeBlock code={outputStr} />
+              <CodeBlock code={outputStr} label="输出" />
             ) : errorStr ? (
-              <div className="text-red-600 dark:text-red-400 font-mono text-sm whitespace-pre-wrap bg-red-50 dark:bg-red-950/20 rounded p-3 border border-red-200 dark:border-red-800">
-                {errorStr}
-              </div>
+              <ErrorBlock message={errorStr} />
             ) : (
               <p className="text-gray-400 text-sm">暂无输出</p>
             )}
@@ -106,11 +105,31 @@ export function DetailPanel({ trace, parentName }: DetailPanelProps) {
   );
 }
 
-function CodeBlock({ code }: { code: string }) {
+function CodeBlock({ code, label }: { code: string; label?: string }) {
   return (
-    <pre className="bg-gray-100 dark:bg-gray-900 rounded-lg p-3 overflow-auto text-sm font-mono whitespace-pre-wrap break-all max-h-[60vh]">
-      <code>{code}</code>
-    </pre>
+    <div className="bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-800">
+        <span className="text-xs text-gray-400">{label ?? 'JSON'}</span>
+        <CopyButton text={code} />
+      </div>
+      <pre className="p-3 overflow-auto text-sm font-mono whitespace-pre-wrap break-all max-h-[60vh]">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+function ErrorBlock({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg overflow-hidden border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-red-200 dark:border-red-800">
+        <span className="text-xs text-red-400">错误信息</span>
+        <CopyButton text={message} />
+      </div>
+      <div className="text-red-600 dark:text-red-400 font-mono text-sm whitespace-pre-wrap p-3">
+        {message}
+      </div>
+    </div>
   );
 }
 
