@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useDeferredValue } from 'react';
+import React, { useState, useMemo, useDeferredValue, useRef } from 'react';
 import { ToolTrace } from '@/lib/types';
 import { flattenTraces } from '@/lib/trace-tree';
 
@@ -60,6 +60,41 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
   // render indented under their parent instead of as a flat list.
   const flatTraces = useMemo(() => flattenTraces(filteredTraces), [filteredTraces]);
 
+  // Ordered id → index lookup so arrow-key navigation can resolve the current
+  // row's position in O(1) instead of scanning `flatTraces` on every keystroke.
+  const indexById = useMemo(
+    () => new Map(flatTraces.map((f, i) => [f.trace.id, i] as const)),
+    [flatTraces],
+  );
+
+  // Roving tabindex (WAI-ARIA keyboard-interaction pattern): exactly one row is
+  // in the Tab order at a time — the selected row, or the first when nothing is
+  // selected. Tab enters/leaves the list in a single stop instead of walking
+  // every row; Arrow keys then move both selection and focus, so a keyboard
+  // user can step through the whole session to replay it.
+  const activeIndex = useMemo(() => {
+    if (selectedId !== null) {
+      const idx = indexById.get(selectedId);
+      if (idx !== undefined) return idx;
+    }
+    return flatTraces.length > 0 ? 0 : -1;
+  }, [selectedId, indexById, flatTraces.length]);
+
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Move selection to the trace at `index` and give it focus so the user can
+  // keep pressing Arrow keys. Focus (via `.focus()`) also scrolls the row into
+  // view when stepping past the visible area. Out-of-range is a no-op so
+  // ArrowUp on the first row / ArrowDown on the last stay put.
+  const stepTo = (index: number) => {
+    const target = flatTraces[index];
+    if (!target) return;
+    onSelect(target.trace.id);
+    listRef.current
+      ?.querySelectorAll<HTMLElement>('[role="button"]')[index]
+      ?.focus();
+  };
+
   const maxDuration = Math.max(...flatTraces.map((f) => f.trace.duration || 1), 1);
   const hasActiveFilter = statusFilter !== 'all' || nameSearch.length > 0;
 
@@ -113,8 +148,8 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
         </div>
       )}
 
-      <div className="space-y-1">
-      {flatTraces.map(({ trace, depth }) => {
+      <div ref={listRef} className="space-y-1">
+      {flatTraces.map(({ trace, depth }, idx) => {
         const widthPct = ((trace.duration || 0) / maxDuration) * 80 + 20; // min 20% width bar
         const timeStr = trace.duration
           ? trace.duration < 1000
@@ -124,9 +159,29 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
         const isSelected = selectedId === trace.id;
 
         const handleKeyDown = (e: React.KeyboardEvent) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onSelect(trace.id);
+          const index = indexById.get(trace.id) ?? 0;
+          switch (e.key) {
+            case 'Enter':
+            case ' ':
+              e.preventDefault();
+              onSelect(trace.id);
+              break;
+            case 'ArrowDown':
+              e.preventDefault();
+              stepTo(index + 1);
+              break;
+            case 'ArrowUp':
+              e.preventDefault();
+              stepTo(index - 1);
+              break;
+            case 'Home':
+              e.preventDefault();
+              stepTo(0);
+              break;
+            case 'End':
+              e.preventDefault();
+              stepTo(flatTraces.length - 1);
+              break;
           }
         };
 
@@ -134,7 +189,7 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
           <div
             key={trace.id}
             role="button"
-            tabIndex={0}
+            tabIndex={idx === activeIndex ? 0 : -1}
             aria-pressed={isSelected}
             aria-label={`${trace.name} — ${trace.status === 'success' ? '成功' : trace.status === 'error' ? '失败' : '运行中'} — ${timeStr}${depth > 0 ? '（嵌套调用）' : ''}`}
             onClick={() => onSelect(trace.id)}
