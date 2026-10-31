@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useDeferredValue, useRef } from 'react';
 import { ToolTrace } from '@/lib/types';
 import { flattenTraces } from '@/lib/trace-tree';
+import { summarize } from '@/lib/summarize';
 
 interface TimelineProps {
   traces: ToolTrace[];
@@ -242,17 +243,4 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
       </div>
     </div>
   );
-}
-
-// Cap inline previews so a single tool call with a huge payload (e.g. a
-// `write_file` body) doesn't dump megabytes of JSON into the DOM on render.
-const PREVIEW_MAX = 120;
-
-function summarize(input: unknown): string {
-  const truncate = (s: string) => (s.length > PREVIEW_MAX ? `${s.slice(0, PREVIEW_MAX)}…` : s);
-  if (typeof input === 'object' && input !== null) {
-    const entries = Object.entries(input as Record<string, unknown>).slice(0, 2);
-    return entries.map(([k, v]) => `${k}: ${truncate(JSON.stringify(v))}`).join(', ');
-  }
-  return truncate(JSON.stringify(input));
 }
