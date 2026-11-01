@@ -4,6 +4,7 @@ import React, { useState, useMemo, useDeferredValue, useRef } from 'react';
 import { ToolTrace } from '@/lib/types';
 import { flattenTraces } from '@/lib/trace-tree';
 import { summarize } from '@/lib/summarize';
+import { maxBy } from '@/lib/max';
 
 interface TimelineProps {
   traces: ToolTrace[];
@@ -96,7 +97,7 @@ export function Timeline({ traces, selectedId, onSelect }: TimelineProps) {
       ?.focus();
   };
 
-  const maxDuration = Math.max(...flatTraces.map((f) => f.trace.duration || 1), 1);
+  const maxDuration = maxBy(flatTraces, (f) => f.trace.duration || 1, 1);
   const hasActiveFilter = statusFilter !== 'all' || nameSearch.length > 0;
 
   return (

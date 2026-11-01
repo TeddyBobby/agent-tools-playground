@@ -2,6 +2,7 @@
 
 import { AgentSession } from '@/lib/types';
 import { computeSessionStats } from '@/lib/stats';
+import { maxBy } from '@/lib/max';
 
 interface StatsPanelProps {
   session: AgentSession;
@@ -22,7 +23,7 @@ export function StatsPanel({ session }: StatsPanelProps) {
     { label: '平均/次', value: formatMs(s.avgDuration) },
   ];
 
-  const maxToolCount = Math.max(...Object.values(s.toolCounts), 1);
+  const maxToolCount = maxBy(Object.values(s.toolCounts), (c) => c, 1);
 
   return (
     <div className="space-y-4">
