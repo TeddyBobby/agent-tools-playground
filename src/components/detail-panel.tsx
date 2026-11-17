@@ -2,6 +2,7 @@
 
 import { ToolTrace } from '@/lib/types';
 import { computeDiff } from '@/lib/diff';
+import { prettyJson, truncateDisplay, formatChars, RENDER_MAX_CHARS, type PrettyJson } from '@/lib/pretty-json';
 import { CopyButton } from './copy-button';
 import { useState } from 'react';
 
@@ -24,9 +25,16 @@ export function DetailPanel({ trace, parentName }: DetailPanelProps) {
     );
   }
 
-  const inputStr = JSON.stringify(trace.input, null, 2);
-  const outputStr = trace.output ? JSON.stringify(trace.output, null, 2) : '';
+  // Bounded pretty-printing: `full` keeps the complete JSON for the copy
+  // button and the diff view, while `display` is a capped prefix so a huge
+  // payload never gets injected into the DOM (see pretty-json.ts). The diff
+  // still diffs the full strings — `computeDiff` already declines oversized
+  // pairs with its own cell cap.
+  const input = prettyJson(trace.input);
+  const output = trace.output ? prettyJson(trace.output) : null;
   const errorStr = trace.error || '';
+  const inputStr = input.full;
+  const outputStr = output?.full ?? '';
 
   return (
     <div className="h-full flex flex-col">
@@ -78,11 +86,11 @@ export function DetailPanel({ trace, parentName }: DetailPanelProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4">
-        {view === 'input' && <CodeBlock code={inputStr} label="输入" />}
+        {view === 'input' && <CodeBlock json={input} label="输入" />}
         {view === 'output' && (
           <>
-            {outputStr ? (
-              <CodeBlock code={outputStr} label="输出" />
+            {output ? (
+              <CodeBlock json={output} label="输出" />
             ) : errorStr ? (
               <ErrorBlock message={errorStr} />
             ) : (
@@ -105,29 +113,41 @@ export function DetailPanel({ trace, parentName }: DetailPanelProps) {
   );
 }
 
-function CodeBlock({ code, label }: { code: string; label?: string }) {
+function CodeBlock({ json, label }: { json: PrettyJson; label?: string }) {
   return (
     <div className="bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-800">
         <span className="text-xs text-gray-400">{label ?? 'JSON'}</span>
-        <CopyButton text={code} />
+        <CopyButton text={json.full} />
       </div>
+      {json.truncated && (
+        <div className="px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-800">
+          内容过大（约 {formatChars(json.full.length)}），已截断显示前 {formatChars(RENDER_MAX_CHARS)}；点击「复制」获取完整内容。
+        </div>
+      )}
       <pre className="p-3 overflow-auto text-sm font-mono whitespace-pre-wrap break-all max-h-[60vh]">
-        <code>{code}</code>
+        <code>{json.display}</code>
       </pre>
     </div>
   );
 }
 
 function ErrorBlock({ message }: { message: string }) {
+  // Bound the error message too — a `terminal` failure can carry full stdout.
+  const { display, truncated } = truncateDisplay(message);
   return (
     <div className="rounded-lg overflow-hidden border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-red-200 dark:border-red-800">
         <span className="text-xs text-red-400">错误信息</span>
         <CopyButton text={message} />
       </div>
+      {truncated && (
+        <div className="px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400 border-b border-red-200 dark:border-red-800">
+          内容过大（约 {formatChars(message.length)}），已截断显示；点击「复制」获取完整内容。
+        </div>
+      )}
       <div className="text-red-600 dark:text-red-400 font-mono text-sm whitespace-pre-wrap p-3">
-        {message}
+        {display}
       </div>
     </div>
   );
