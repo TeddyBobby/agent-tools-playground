@@ -16,10 +16,19 @@ import { ThemeToggle } from '@/components/theme-toggle';
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+type MainTab = 'timeline' | 'stats';
+
+const MAIN_TABS: MainTab[] = ['timeline', 'stats'];
+
+const MAIN_TAB_LABELS: Record<MainTab, string> = {
+  timeline: '时间线',
+  stats: '统计',
+};
+
 export default function Home() {
   const [session, setSession] = useState<AgentSession>(() => generateDemoSession());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'timeline' | 'stats'>('timeline');
+  const [activeTab, setActiveTab] = useState<MainTab>('timeline');
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -27,6 +36,10 @@ export default function Home() {
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const importModalRef = useRef<HTMLDivElement>(null);
   const prevShowImportRef = useRef(false);
+  const mainTabRefs = useRef<Record<MainTab, HTMLButtonElement | null>>({
+    timeline: null,
+    stats: null,
+  });
 
   const selectedTrace =
     session.traces.find((t) => t.id === selectedId) || null;
@@ -177,6 +190,34 @@ export default function Home() {
     }
   };
 
+  // WAI-ARIA Tabs Pattern keyboard support for the header's 时间线/统计 toggle
+  // (horizontal, automatic activation). Mirrors the detail panel's tab handler:
+  // Arrow keys move focus and activate, Home/End jump to the ends.
+  const handleMainTabKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const idx = MAIN_TABS.indexOf(activeTab);
+    let nextIdx: number | null = null;
+    switch (e.key) {
+      case 'ArrowRight':
+        nextIdx = (idx + 1) % MAIN_TABS.length;
+        break;
+      case 'ArrowLeft':
+        nextIdx = (idx - 1 + MAIN_TABS.length) % MAIN_TABS.length;
+        break;
+      case 'Home':
+        nextIdx = 0;
+        break;
+      case 'End':
+        nextIdx = MAIN_TABS.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    const next = MAIN_TABS[nextIdx];
+    setActiveTab(next);
+    mainTabRefs.current[next]?.focus();
+  };
+
   return (
     <ErrorBoundary>
       <div className="h-screen flex flex-col bg-white dark:bg-gray-950">
@@ -211,27 +252,36 @@ export default function Home() {
               📤 导出
             </button>
             <ThemeToggle />
-            <div className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
-              <button
-                onClick={() => setActiveTab('timeline')}
-                className={`px-3 py-1.5 text-sm transition-colors ${
-                  activeTab === 'timeline'
-                    ? 'bg-blue-600 text-white'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                时间线
-              </button>
-              <button
-                onClick={() => setActiveTab('stats')}
-                className={`px-3 py-1.5 text-sm transition-colors ${
-                  activeTab === 'stats'
-                    ? 'bg-blue-600 text-white'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
-                统计
-              </button>
+            <div
+              role="tablist"
+              aria-label="主视图"
+              className="flex rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden"
+            >
+              {MAIN_TABS.map((tab) => {
+                const isActive = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    ref={(el) => {
+                      mainTabRefs.current[tab] = el;
+                    }}
+                    role="tab"
+                    id={`main-tab-${tab}`}
+                    aria-selected={isActive}
+                    aria-controls="main-panel"
+                    tabIndex={isActive ? 0 : -1}
+                    onClick={() => setActiveTab(tab)}
+                    onKeyDown={handleMainTabKeyDown}
+                    className={`px-3 py-1.5 text-sm transition-colors ${
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    {MAIN_TAB_LABELS[tab]}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </header>
@@ -239,7 +289,12 @@ export default function Home() {
         {/* Main content */}
         <div inert={showImport} className="flex-1 flex overflow-hidden">
           {/* Left panel — timeline/stats */}
-          <div className="flex-1 overflow-y-auto border-r border-gray-200 dark:border-gray-800 p-4">
+          <div
+            role="tabpanel"
+            id="main-panel"
+            aria-labelledby={`main-tab-${activeTab}`}
+            className="flex-1 overflow-y-auto border-r border-gray-200 dark:border-gray-800 p-4"
+          >
             {activeTab === 'timeline' ? (
               <Timeline
                 traces={session.traces}

@@ -4,15 +4,61 @@ import { ToolTrace } from '@/lib/types';
 import { computeDiff } from '@/lib/diff';
 import { prettyJson, truncateDisplay, formatChars, RENDER_MAX_CHARS, type PrettyJson } from '@/lib/pretty-json';
 import { CopyButton } from './copy-button';
-import { useState } from 'react';
+import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 interface DetailPanelProps {
   trace: ToolTrace | null;
   parentName?: string;
 }
 
+type View = 'input' | 'output' | 'diff';
+
+const VIEWS: View[] = ['input', 'output', 'diff'];
+
+const VIEW_LABELS: Record<View, string> = {
+  input: '输入',
+  output: '输出',
+  diff: '对比',
+};
+
 export function DetailPanel({ trace, parentName }: DetailPanelProps) {
-  const [view, setView] = useState<'input' | 'output' | 'diff'>('input');
+  const [view, setView] = useState<View>('input');
+  const tabRefs = useRef<Record<View, HTMLButtonElement | null>>({
+    input: null,
+    output: null,
+    diff: null,
+  });
+
+  // WAI-ARIA Tabs Pattern (horizontal, automatic activation): Arrow keys move
+  // focus to the next/previous tab and activate it immediately, Home/End jump
+  // to the first/last. Activation-on-focus matches the click behaviour — the
+  // panel updates on selection — so the view and keyboard focus never disagree.
+  const handleTabKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const idx = VIEWS.indexOf(view);
+    let nextIdx: number | null = null;
+    switch (e.key) {
+      case 'ArrowRight':
+        nextIdx = (idx + 1) % VIEWS.length;
+        break;
+      case 'ArrowLeft':
+        nextIdx = (idx - 1 + VIEWS.length) % VIEWS.length;
+        break;
+      case 'Home':
+        nextIdx = 0;
+        break;
+      case 'End':
+        nextIdx = VIEWS.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    const next = VIEWS[nextIdx];
+    setView(next);
+    // `.focus()` works even before React re-renders the tabIndex swap; the
+    // target button is still in the DOM and programmatically focusable.
+    tabRefs.current[next]?.focus();
+  };
 
   if (!trace) {
     return (
@@ -67,25 +113,50 @@ export function DetailPanel({ trace, parentName }: DetailPanelProps) {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-800">
-        {(['input', 'output', 'diff'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setView(tab)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              view === tab
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            {tab === 'diff' ? '对比' : tab === 'input' ? '输入' : '输出'}
-          </button>
-        ))}
+      {/* Tabs — implemented per the WAI-ARIA Tabs Pattern: the container is a
+          `tablist`, each button is a `tab` carrying `aria-selected` +
+          `aria-controls`, and the content region below is a single `tabpanel`
+          labelled by the active tab. Arrow keys navigate between tabs. */}
+      <div
+        role="tablist"
+        aria-label="详情视图"
+        className="flex border-b border-gray-200 dark:border-gray-800"
+      >
+        {VIEWS.map((tab) => {
+          const isActive = view === tab;
+          return (
+            <button
+              key={tab}
+              ref={(el) => {
+                tabRefs.current[tab] = el;
+              }}
+              role="tab"
+              id={`detail-tab-${tab}`}
+              aria-selected={isActive}
+              aria-controls="detail-panel"
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => setView(tab)}
+              onKeyDown={handleTabKeyDown}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                isActive
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              {VIEW_LABELS[tab]}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
+      <div
+        role="tabpanel"
+        id="detail-panel"
+        aria-labelledby={`detail-tab-${view}`}
+        tabIndex={0}
+        className="flex-1 overflow-auto p-4"
+      >
         {view === 'input' && <CodeBlock json={input} label="输入" />}
         {view === 'output' && (
           <>
